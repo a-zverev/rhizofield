@@ -25,26 +25,24 @@ source('functions2.R')
 ```r
 #Black soil
 roots.BS <- readRDS('roots.BS.RData')
-bact.BS <- readRDS('bact.BS.RData')
+bact.BS <- readRDS('bact.BS.RData')  %>% subset_taxa(Family != "Mitochondria" & Class != "Chloroplast")
 
 bact.BS <- subset_samples(bact.BS, Spot %in% c('1', '2', '3'))
 
-ng.roots.BS <- rarefy_collapse(roots.BS)
-ng.bact.BS <- rarefy_collapse(bact.BS)
-
-#ng.roots.BS <- rarefy_even_depth(ng.roots.BS, 6352, verbose = FALSE)
+n.roots.BS <- rarefy_collapse(roots.BS)
+n.bact.BS <- rarefy_collapse(bact.BS)
 ```
 
 
 ```r
 #Podzol soil
 roots.PS <- readRDS('roots.PS.RData')
-bact.PS <- readRDS('bact.PS.RData')
+bact.PS <- readRDS('bact.PS.RData') %>% subset_taxa(Family != "Mitochondria" & Class != "Chloroplast")
 
 bact.PS <- subset_samples(bact.PS, Spot %in% c('1', '2', '3'))
 
-ng.roots.PS <- rarefy_collapse(roots.PS)
-ng.bact.PS <- rarefy_collapse(bact.PS)
+n.roots.PS <- rarefy_collapse(roots.PS)
+n.bact.PS <- rarefy_collapse(bact.PS)
 ```
 
 ## Представленность таксонов
@@ -55,12 +53,12 @@ ng.bact.PS <- rarefy_collapse(bact.PS)
 
 
 ```r
-a <- phyloseq(otu_table(ng.roots.BS),
-              tax_table(ng.roots.BS),
-              sam_data(ng.roots.BS))
-b <- phyloseq(otu_table(ng.roots.PS),
-              tax_table(ng.roots.PS),
-              sam_data(ng.roots.PS))
+a <- phyloseq(otu_table(n.roots.BS),
+              tax_table(n.roots.BS),
+              sam_data(n.roots.BS))
+b <- phyloseq(otu_table(n.roots.PS),
+              tax_table(n.roots.PS),
+              sam_data(n.roots.PS))
 c <- merge_phyloseq(a, b)
 
 bargraph(c, "Genus", 0.1) + facet_grid(~Soil, scale = 'free_x')
@@ -69,8 +67,8 @@ bargraph(c, "Genus", 0.1) + facet_grid(~Soil, scale = 'free_x')
 ![](diversity_analysis_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 ```r
-ggarrange(bargraph(ng.roots.BS, "Genus", 0.03),
-          bargraph(ng.roots.PS, "Genus", 0.03),
+ggarrange(bargraph(n.roots.BS, "Genus", 0.03),
+          bargraph(n.roots.PS, "Genus", 0.03),
           ncol = 2)
 ```
 
@@ -81,12 +79,12 @@ ggarrange(bargraph(ng.roots.BS, "Genus", 0.03),
 
 
 ```r
-a <- phyloseq(otu_table(ng.bact.BS),
-              tax_table(ng.bact.BS),
-              sam_data(ng.bact.BS))
-b <- phyloseq(otu_table(ng.bact.PS),
-              tax_table(ng.bact.PS),
-              sam_data(ng.bact.PS))
+a <- phyloseq(otu_table(n.bact.BS),
+              tax_table(n.bact.BS),
+              sam_data(n.bact.BS))
+b <- phyloseq(otu_table(n.bact.PS),
+              tax_table(n.bact.PS),
+              sam_data(n.bact.PS))
 c <- merge_phyloseq(a, b)
 
 bargraph(c, "Phylum", 0.03) + facet_grid(~Soil, scale = 'free_x')
@@ -104,64 +102,78 @@ bargraph(c, "Phylum", 0.03) + facet_grid(~Soil, scale = 'free_x')
 Давайте посчитаем корреляцию между этими индексами, рассчитанными для разных почв в парах "корни - бактерии"
 
 
-### Графики альфа-разнообразия
+### Графики корреляции метрик альфа-разнообразия
 
 
 ```r
+plot_internal_correlation(alpha_div(n.roots.BS, pairwise_distances_from_ps(n.roots.BS)) %>% select(-Source, -Spot))
+```
+
+![](diversity_analysis_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+```r
+plot_internal_correlation(alpha_div(n.roots.PS, pairwise_distances_from_ps(n.roots.PS)) %>% select(-Source, -Spot))
+```
+
+![](diversity_analysis_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+
+```r
+plot_internal_correlation(alpha_div(n.bact.BS, pairwise_distances_from_ps(n.bact.BS)) %>% select(-Source, -Spot))
+```
+
+![](diversity_analysis_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
+
+```r
+plot_internal_correlation(alpha_div(n.bact.PS, pairwise_distances_from_ps(n.bact.PS)) %>% select(-Source, -Spot))
+```
+
+![](diversity_analysis_files/figure-html/unnamed-chunk-6-4.png)<!-- -->
+
+### 
+
+
+```r
+# Metrics
+n.roots.BS.alpha <- bootstrapped_alpha_div(n.roots.BS)
+n.roots.PS.alpha <- bootstrapped_alpha_div(n.roots.PS)
+n.bact.BS.alpha <- bootstrapped_alpha_div(n.bact.BS)
+n.bact.PS.alpha <- bootstrapped_alpha_div(n.bact.PS)
+
 drawer <- function(metric){
-  p1 <- plot_correlation(ng.roots.BS, ng.bact.BS, metric)
-  p3 <- plot_correlation(ng.roots.PS, ng.bact.PS, metric)
+  p1 <- plot_correlation(n.roots.BS.alpha, n.bact.BS.alpha, metric)
+  p3 <- plot_correlation(n.roots.PS.alpha, n.bact.PS.alpha, metric)
   ggarrange(p1, p3, ncol = 2)
 }
 
 drawer('Observed')
 ```
 
-![](diversity_analysis_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](diversity_analysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ```r
 drawer('PD')
 ```
 
-![](diversity_analysis_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+![](diversity_analysis_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
 
 ```r
 drawer('Simpson')
 ```
 
-![](diversity_analysis_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
+![](diversity_analysis_files/figure-html/unnamed-chunk-7-3.png)<!-- -->
 
 ```r
 drawer('mpd')
 ```
 
-![](diversity_analysis_files/figure-html/unnamed-chunk-6-4.png)<!-- -->
-
-### Графики p-distance
-
+![](diversity_analysis_files/figure-html/unnamed-chunk-7-4.png)<!-- -->
 
 ```r
-#p-distances
-p.distances <- read.table('p-distances.csv', sep=',', header = T, row.names = 1)
-colnames(p.distances) <- c("bact.mean", "bact.sd", "roots.mean", "roots.sd", "fungi.mean", "fungi.sd")
-p.distances$Source <- c('Graminae', 'Graminae', 'Graminae',
-                        'Melilot', 'Melilot', 'Melilot',
-                        'Wheat', 'Wheat', 'Wheat',
-                        'Bedstraw', 'Bedstraw', 'Bedstraw',
-                        'Graminae', 'Graminae', 'Graminae',
-                        'Rye', 'Rye', 'Rye')
-
-p.distances.BS <- p.distances[1:9,]
-p.distances.PS <- p.distances[10:18,]
-
-p1 <- plot_p_distance(p.distances.BS, 'bact', 'BS')
-p3 <- plot_p_distance(p.distances.PS, 'bact', 'PS')
-ggarrange(p1, p3, ncol = 2)
+drawer('p.dist')
 ```
 
-![](diversity_analysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](diversity_analysis_files/figure-html/unnamed-chunk-7-5.png)<!-- -->
 
----
 
 Любопытно. Индекс p-value, по-видимому, чувствительнее всего отражают предполагаемую нами зависимость, но и классические экологические метрики, особенно метрики eveness, ее отражают. 
 Вероятно, мы оказываемся на границе чувствительности, так как при очень схожем паттерне достоверность то есть, то нет. 
@@ -177,6 +189,18 @@ ggarrange(p1, p3, ncol = 2)
 
 
 ```r
+beta_plot_drawer <- function(metric){
+  p1 <- beta_plot(n.roots.PS, metric)
+  p2 <- beta_plot(n.bact.PS, metric)
+  p3 <- beta_plot(n.roots.BS, metric)
+  p4 <- beta_plot(n.bact.BS, metric)
+  
+  ggarrange(ggarrange(p1, p2, common.legend = T, legend = 'bottom'),
+            ggarrange(p3, p4, common.legend = T, legend = 'bottom'),
+            nrow = 2)
+}
+
+
 beta_plot_drawer("unifrac")
 ```
 
@@ -202,8 +226,8 @@ beta_plot_drawer("bray")
 
 ```r
 beta_drawer <- function(metric){
-  p1 <- beta_corr(ng.roots.BS, ng.bact.BS, metric)
-  p3 <- beta_corr(ng.roots.PS, ng.bact.PS, metric)
+  p1 <- beta_corr(n.roots.BS, n.bact.BS, metric)
+  p3 <- beta_corr(n.roots.PS, n.bact.PS, metric)
   ggarrange(p1, p3, ncol = 2)
 }
 
@@ -225,24 +249,78 @@ beta_drawer('bray')
 ![](diversity_analysis_files/figure-html/unnamed-chunk-9-3.png)<!-- -->
 
 
-## DeSEQ анализ
 
-### Барграфы или таблицы в supplementary?
 
 ```r
-plot_heatmap(ps_from_deseq(ng.bact.PS, "PS"), taxa.label = "Family", na.value = "white",
-             high = "#000099", low = "white")
+# # Strange beta p-distance
+# 
+# all.beta.pd <- read.csv("beta_p-distance.csv", comment.char = "#", sep = "\t")
+# 
+# beta.pd.roots.BS <- all.beta.pd %>% filter(norm == 1, Source == "Roots", Soil == "BS")
+# beta.pd.roots.PS <- all.beta.pd %>% filter(norm == 1, Source == "Roots", Soil == "PS")
+# beta.pd.bact.BS <- all.beta.pd %>% filter(norm == 1, Source == "Bact", Soil == "BS")
+# beta.pd.bact.PS <- all.beta.pd %>% filter(norm == 1, Source == "Bact", Soil == "PS")
+# 
+# convert_longer <- function(table_df){
+#   table_df <- table_df  %>% 
+#     select(-norm, -Source, -Soil)
+#   colnames(table_df) <- c("X", as.character(table_df$X)) 
+#   table_df %>%
+#     pivot_longer(!X, names_to = "Y", values_to = "value")
+# }
+# 
+# beta_p_distance_correlation <- function(root, bact){
+#   a <- convert_longer(root)
+#   b <- convert_longer(bact)
+#   
+#   data <- inner_join(a, b, by = c('X', 'Y'))
+#   x = data$value.x
+#   y = data$value.y
+#   data$Color <- paste(gsub('.{2}$', '', data$X), '-', gsub('.{2}$', '', data$Y))
+#   #correlation
+#   fit <- corr.test(x=x, y=y)
+#   print(data)
+#   print(fit$p)
+#   header <- paste0('R: ', round(fit$r, 3), ' (p-value - ', round(fit$p, 3), ')')
+#   #plotting
+#   ggplot(data = data, aes(x = x, y = y)) + 
+#     geom_point(aes(color = Color)) +
+#     geom_smooth(method = 'lm', se = F) + 
+#     theme_light() +
+#     theme(plot.title = element_text(color = ifelse(fit$p < 0.05, "darkgreen", "brown2"))) +
+#     labs(title=paste(header), 
+#          x = paste("beta_p-dist", '-', deparse(substitute(root))), 
+#          y = paste("beta_p-dist", '-', deparse(substitute(bact))))
+#   
+# }
+# 
+# 
+# 
+# print(beta_p_distance_correlation(beta.pd.roots.BS, beta.pd.bact.BS))
+# print(beta_p_distance_correlation(beta.pd.roots.PS, beta.pd.bact.PS))
 ```
 
-![](diversity_analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+
+## DeSEQ анализ
+
+### Достоверно изменяющие численность таксоны
 
 
 ```r
-plot_heatmap(ps_from_deseq(ng.bact.BS, "BS"), taxa.label = "Family", na.value = "white",
-             high = "#000099", low = "white")
+plot_heatmap(ps_from_deseq(n.bact.PS, "PS", "Family"), taxa.label = "Family", na.value = "white",
+             high = "#000099", low = "grey")
 ```
 
 ![](diversity_analysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+
+```r
+plot_heatmap(ps_from_deseq(n.bact.BS, "BS", "Family"), taxa.label = "Family", na.value = "white",
+             high = "#000099", low = "grey")
+```
+
+![](diversity_analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 
 ### Ternary plots
