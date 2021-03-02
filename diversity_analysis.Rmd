@@ -3,11 +3,15 @@ title: "Diversity in soils"
 output:
   html_document: 
     keep_md: yes
+    number_section: yes
+    toc: yes
+    toc_float: yes
 ---
 
 ```{r message=FALSE, warning=FALSE}
 library(phyloseq)
 library(ggplot2)
+library(gridExtra)
 library(dplyr)
 library(ggpubr)
 library(picante)
@@ -15,6 +19,7 @@ library(reshape2)
 library(tidyr)
 library(psych)
 library(DESeq2)
+library(fpc)
 
 setwd('/home/alexey/Analysis/RW/3rd publication/rhizofield/')
 source('functions2.R')
@@ -23,25 +28,23 @@ source('functions2.R')
 ```{r}
 #Black soil
 roots.BS <- readRDS('roots.BS.RData')
-bact.BS <- readRDS('bact.BS.RData')
+bact.BS <- readRDS('bact.BS.RData')  %>% subset_taxa(Family != "Mitochondria" & Class != "Chloroplast")
 
 bact.BS <- subset_samples(bact.BS, Spot %in% c('1', '2', '3'))
 
-ng.roots.BS <- rarefy_collapse(roots.BS)
-ng.bact.BS <- rarefy_collapse(bact.BS)
-
-#ng.roots.BS <- rarefy_even_depth(ng.roots.BS, 6352, verbose = FALSE)
+n.roots.BS <- rarefy_collapse(roots.BS)
+n.bact.BS <- rarefy_collapse(bact.BS)
 ```
 
 ```{r}
 #Podzol soil
 roots.PS <- readRDS('roots.PS.RData')
-bact.PS <- readRDS('bact.PS.RData')
+bact.PS <- readRDS('bact.PS.RData') %>% subset_taxa(Family != "Mitochondria" & Class != "Chloroplast")
 
 bact.PS <- subset_samples(bact.PS, Spot %in% c('1', '2', '3'))
 
-ng.roots.PS <- rarefy_collapse(roots.PS)
-ng.bact.PS <- rarefy_collapse(bact.PS)
+n.roots.PS <- rarefy_collapse(roots.PS)
+n.bact.PS <- rarefy_collapse(bact.PS)
 ```
 
 ## Представленность таксонов
@@ -51,18 +54,18 @@ ng.bact.PS <- rarefy_collapse(bact.PS)
 Как задать корректный порог? Или все же отдельные графики?
 
 ```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
-a <- phyloseq(otu_table(ng.roots.BS),
-              tax_table(ng.roots.BS),
-              sam_data(ng.roots.BS))
-b <- phyloseq(otu_table(ng.roots.PS),
-              tax_table(ng.roots.PS),
-              sam_data(ng.roots.PS))
+a <- phyloseq(otu_table(n.roots.BS),
+              tax_table(n.roots.BS),
+              sam_data(n.roots.BS))
+b <- phyloseq(otu_table(n.roots.PS),
+              tax_table(n.roots.PS),
+              sam_data(n.roots.PS))
 c <- merge_phyloseq(a, b)
 
 bargraph(c, "Genus", 0.1) + facet_grid(~Soil, scale = 'free_x')
   
-ggarrange(bargraph(ng.roots.BS, "Genus", 0.03),
-          bargraph(ng.roots.PS, "Genus", 0.03),
+ggarrange(bargraph(n.roots.BS, "Genus", 0.03),
+          bargraph(n.roots.PS, "Genus", 0.03),
           ncol = 2)
 
 ```
@@ -71,12 +74,12 @@ ggarrange(bargraph(ng.roots.BS, "Genus", 0.03),
 
 
 ```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
-a <- phyloseq(otu_table(ng.bact.BS),
-              tax_table(ng.bact.BS),
-              sam_data(ng.bact.BS))
-b <- phyloseq(otu_table(ng.bact.PS),
-              tax_table(ng.bact.PS),
-              sam_data(ng.bact.PS))
+a <- phyloseq(otu_table(n.bact.BS),
+              tax_table(n.bact.BS),
+              sam_data(n.bact.BS))
+b <- phyloseq(otu_table(n.bact.PS),
+              tax_table(n.bact.PS),
+              sam_data(n.bact.PS))
 c <- merge_phyloseq(a, b)
 
 bargraph(c, "Phylum", 0.03) + facet_grid(~Soil, scale = 'free_x')
@@ -93,13 +96,27 @@ bargraph(c, "Phylum", 0.03) + facet_grid(~Soil, scale = 'free_x')
 Давайте посчитаем корреляцию между этими индексами, рассчитанными для разных почв в парах "корни - бактерии"
 
 
-### Графики альфа-разнообразия
+### Графики корреляции метрик альфа-разнообразия
 
-```{r fig.height=6, fig.width=12, message=FALSE}
+```{r cache=TRUE}
+plot_internal_correlation(alpha_div(n.roots.BS, pairwise_distances_from_ps(n.roots.BS)) %>% select(-Source, -Spot))
+plot_internal_correlation(alpha_div(n.roots.PS, pairwise_distances_from_ps(n.roots.PS)) %>% select(-Source, -Spot))
+plot_internal_correlation(alpha_div(n.bact.BS, pairwise_distances_from_ps(n.bact.BS)) %>% select(-Source, -Spot))
+plot_internal_correlation(alpha_div(n.bact.PS, pairwise_distances_from_ps(n.bact.PS)) %>% select(-Source, -Spot))
+```
+
+### 
+
+```{r fig.height=6, fig.width=12, message=FALSE, cache=TRUE}
+# Metrics
+n.roots.BS.alpha <- bootstrapped_alpha_div(n.roots.BS)
+n.roots.PS.alpha <- bootstrapped_alpha_div(n.roots.PS)
+n.bact.BS.alpha <- bootstrapped_alpha_div(n.bact.BS)
+n.bact.PS.alpha <- bootstrapped_alpha_div(n.bact.PS)
 
 drawer <- function(metric){
-  p1 <- plot_correlation(ng.roots.BS, ng.bact.BS, metric)
-  p3 <- plot_correlation(ng.roots.PS, ng.bact.PS, metric)
+  p1 <- plot_correlation(n.roots.BS.alpha, n.bact.BS.alpha, metric)
+  p3 <- plot_correlation(n.roots.PS.alpha, n.bact.PS.alpha, metric)
   ggarrange(p1, p3, ncol = 2)
 }
 
@@ -107,32 +124,10 @@ drawer('Observed')
 drawer('PD')
 drawer('Simpson')
 drawer('mpd')
+drawer('p.dist')
 ```
 
-### Графики p-distance
 
-```{r message=F, fig.width = 12, fig.height=6}
-#p-distances
-p.distances <- read.table('p-distances.csv', sep=',', header = T, row.names = 1)
-colnames(p.distances) <- c("bact.mean", "bact.sd", "roots.mean", "roots.sd", "fungi.mean", "fungi.sd")
-p.distances$Source <- c('Graminae', 'Graminae', 'Graminae',
-                        'Melilot', 'Melilot', 'Melilot',
-                        'Wheat', 'Wheat', 'Wheat',
-                        'Bedstraw', 'Bedstraw', 'Bedstraw',
-                        'Graminae', 'Graminae', 'Graminae',
-                        'Rye', 'Rye', 'Rye')
-
-p.distances.BS <- p.distances[1:9,]
-p.distances.PS <- p.distances[10:18,]
-
-p1 <- plot_p_distance(p.distances.BS, 'bact', 'BS')
-p3 <- plot_p_distance(p.distances.PS, 'bact', 'PS')
-ggarrange(p1, p3, ncol = 2)
-```
-
----
-
-Любопытно. Индекс p-value, по-видимому, чувствительнее всего отражают предполагаемую нами зависимость, но и классические экологические метрики, особенно метрики eveness, ее отражают. 
 Вероятно, мы оказываемся на границе чувствительности, так как при очень схожем паттерне достоверность то есть, то нет. 
 
 ---
@@ -145,50 +140,202 @@ ggarrange(p1, p3, ncol = 2)
 ### Бета-разнообразие
 
 ```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+beta_plot_drawer <- function(metric){
+  p1 <- beta_plot(n.roots.PS, metric)
+  p2 <- beta_plot(n.bact.PS, metric)
+  p3 <- beta_plot(n.roots.BS, metric)
+  p4 <- beta_plot(n.bact.BS, metric)
+  
+  ggarrange(ggarrange(p1, p2, common.legend = T, legend = 'bottom'),
+            ggarrange(p3, p4, common.legend = T, legend = 'bottom'),
+            nrow = 2)
+}
+
 
 beta_plot_drawer("unifrac")
-beta_plot_drawer("wunifrac")
-beta_plot_drawer("bray")
 ```
 
+### Статистика для кластеров бета-разнообразия
 
-### Корреляця дистанций бета-разнообразия
+Гипотеза: структура кластеров похожа. Для этого используем статистики из пакета кластерного анализа. Использованы следующие метрики:
 
-Каждая точка на графике - численное выражение дистанция между двумя сообществами (например, Graminae.1 - Rye.2). По оси Х эта дистанция взята для растительных сообществ, по оси Y - для сообществ микроорганизмов. Насколько распределение дистанций в корневых сообществах повторяет его в сообществах микроорганизмов?
+Для кластера:
+
+* Dunn - индекс Дунна. Рассчитывается один на весь плот, мера силы кластеризации. Отношение минимальной меры сепарации к максимальному диаметру кластера.
+* Median_dist - медианная дистанция. Медианная дистанция между точками в выбранном классе.
+* Min_separation - минимальная величина сепарации. Минимальное расстояние от между точкой, принадлежащей этому кластеру, и точкой, принадлежащей любому другому кластеру.
+
+Для пары кластеров:
+
+* Clusters_Separation - минимальная дистанция между точкой в одном кластере и точкой в другом кластере.
+* Distance_Between - средняя дистанция между кластерами.
+
+
+```{r}
+# https://www.rdocumentation.org/packages/fpc/versions/2.2-9/topics/cluster.stats
+
+# because every run of unifrac is unique, we should use bootstrap as multiple calculation
+# (or, perhaps, root the tree?)
+bootstrapped_wunifrac_cluster_stat <- function(ps, repeats){
+  # dm <- as.matrix(UniFrac(ps, weighted=TRUE))
+  dm.matrices <- replicate(repeats, as.matrix(UniFrac(ps, weighted=TRUE)), simplify = FALSE)
+  true.dm <- Reduce("+", dm.matrices) / length(dm.matrices)
+  info <- sample_data(ps)$Source
+  clusters <- levels(info)
+  levels(info) <- c(1, 2, 3)
+  info <- as.numeric(as.vector(info))
+  res <- cluster.stats(d = true.dm, clustering = info, silhouette = FALSE)
+  common <- data.frame(Cluster = clusters,
+             Median_Dist = res$median.distance,
+             Min_separation = res$separation,
+             # Sepr_m = res$separation.matrix,
+             # AvBtw_m = res$ave.between.matrix,
+             Dunn = res$dunn) %>% 
+    mutate_if(is.numeric, round, digits = 3)
+  matrix_to_df <- function(X, names){
+      colnames(X) <- clusters
+      rownames(X) <- clusters
+      ind <- which(upper.tri(X, diag = F), arr.ind = TRUE)
+      nn <- dimnames(X)
+      data.frame(Cluster_1 = nn[[1]][ind[, 1]],
+           Cluster_2 = nn[[2]][ind[, 2]],
+           val = X[ind])
+  }
+  extra2 <- matrix_to_df(res$ave.between.matrix, clusters) %>% rename(Distance_Between = val)
+  extra <- matrix_to_df(res$separation.matrix, clusters) %>% rename(Clusters_Separation = val)
+  extra <- merge(extra, extra2, by = c('Cluster_1', 'Cluster_2'))
+  list(common, extra)
+}
+```
+
+#### Чернозем
+
+```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+p1 <- beta_plot(n.roots.BS, 'wunifrac')
+d1 <- bootstrapped_wunifrac_cluster_stat(n.roots.BS, 100)
+
+p2 <- beta_plot(n.bact.BS, 'wunifrac')
+d2 <- bootstrapped_wunifrac_cluster_stat(n.bact.BS, 100)
+
+
+ggarrange(p1, p2, common.legend = T)
+merge(d1[1] %>% as.data.frame(), d2[1] %>% as.data.frame, 
+      by = 'Cluster', 
+      suffixes = c(":Roots",":Bact")) %>%  select(order(colnames(.)))
+merge(d1[2] %>% as.data.frame(), d2[2] %>% as.data.frame, 
+      by = c('Cluster_1', 'Cluster_2'), 
+      suffixes = c(":Roots",":Bact")) %>%  select(order(colnames(.)))
+```
+
+#### Подзол
+
+```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+p1 <- beta_plot(n.roots.PS, 'wunifrac')
+d1 <- bootstrapped_wunifrac_cluster_stat(n.roots.PS, 100)
+
+p2 <- beta_plot(n.bact.PS, 'wunifrac')
+d2 <- bootstrapped_wunifrac_cluster_stat(n.bact.PS, 100)
+
+
+ggarrange(p1, p2, common.legend = T)
+merge(d1[1] %>% as.data.frame(), d2[1] %>% as.data.frame, 
+      by = 'Cluster', 
+      suffixes = c(":Roots",":Bact")) %>%  select(order(colnames(.)))
+merge(d1[2] %>% as.data.frame(), d2[2] %>% as.data.frame, 
+      by = c('Cluster_1', 'Cluster_2'), 
+      suffixes = c(":Roots",":Bact")) %>%  select(order(colnames(.)))
+```
+
+<!-- ### Корреляця дистанций бета-разнообразия -->
+
+<!-- Каждая точка на графике - численное выражение дистанция между двумя сообществами (например, Graminae.1 - Rye.2). По оси Х эта дистанция взята для растительных сообществ, по оси Y - для сообществ микроорганизмов. Насколько распределение дистанций в корневых сообществах повторяет его в сообществах микроорганизмов? -->
 
 ```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
 
-beta_drawer <- function(metric){
-  p1 <- beta_corr(ng.roots.BS, ng.bact.BS, metric)
-  p3 <- beta_corr(ng.roots.PS, ng.bact.PS, metric)
-  ggarrange(p1, p3, ncol = 2)
-}
+# beta_drawer <- function(metric){
+#   p1 <- beta_corr(n.roots.BS, n.bact.BS, metric)
+#   p3 <- beta_corr(n.roots.PS, n.bact.PS, metric)
+#   ggarrange(p1, p3, ncol = 2)
+# }
 
-beta_drawer('unifrac')
-beta_drawer('wunifrac')
-beta_drawer('bray')
+# beta_drawer('unifrac')
+# beta_drawer('wunifrac')
+# beta_drawer('bray')
 ```
+
+
+
+```{r}
+# # Strange beta p-distance
+# 
+# all.beta.pd <- read.csv("beta_p-distance.csv", comment.char = "#", sep = "\t")
+# 
+# beta.pd.roots.BS <- all.beta.pd %>% filter(norm == 1, Source == "Roots", Soil == "BS")
+# beta.pd.roots.PS <- all.beta.pd %>% filter(norm == 1, Source == "Roots", Soil == "PS")
+# beta.pd.bact.BS <- all.beta.pd %>% filter(norm == 1, Source == "Bact", Soil == "BS")
+# beta.pd.bact.PS <- all.beta.pd %>% filter(norm == 1, Source == "Bact", Soil == "PS")
+# 
+# convert_longer <- function(table_df){
+#   table_df <- table_df  %>% 
+#     select(-norm, -Source, -Soil)
+#   colnames(table_df) <- c("X", as.character(table_df$X)) 
+#   table_df %>%
+#     pivot_longer(!X, names_to = "Y", values_to = "value")
+# }
+# 
+# beta_p_distance_correlation <- function(root, bact){
+#   a <- convert_longer(root)
+#   b <- convert_longer(bact)
+#   
+#   data <- inner_join(a, b, by = c('X', 'Y'))
+#   x = data$value.x
+#   y = data$value.y
+#   data$Color <- paste(gsub('.{2}$', '', data$X), '-', gsub('.{2}$', '', data$Y))
+#   #correlation
+#   fit <- corr.test(x=x, y=y)
+#   print(data)
+#   print(fit$p)
+#   header <- paste0('R: ', round(fit$r, 3), ' (p-value - ', round(fit$p, 3), ')')
+#   #plotting
+#   ggplot(data = data, aes(x = x, y = y)) + 
+#     geom_point(aes(color = Color)) +
+#     geom_smooth(method = 'lm', se = F) + 
+#     theme_light() +
+#     theme(plot.title = element_text(color = ifelse(fit$p < 0.05, "darkgreen", "brown2"))) +
+#     labs(title=paste(header), 
+#          x = paste("beta_p-dist", '-', deparse(substitute(root))), 
+#          y = paste("beta_p-dist", '-', deparse(substitute(bact))))
+#   
+# }
+# 
+# 
+# 
+# print(beta_p_distance_correlation(beta.pd.roots.BS, beta.pd.bact.BS))
+# print(beta_p_distance_correlation(beta.pd.roots.PS, beta.pd.bact.PS))
+```
+
 
 
 ## DeSEQ анализ
 
-### Барграфы или таблицы в supplementary?
+### Достоверно изменяющие численность таксоны
+
 ```{r message=FALSE, fig.width = 5, fig.height=24, warning=FALSE}
 
-plot_heatmap(ps_from_deseq(ng.bact.PS, "PS"), taxa.label = "Family", na.value = "white",
-             high = "#000099", low = "white")
+plot_heatmap(ps_from_deseq(n.bact.PS, "PS", "Family"), taxa.label = "Family", na.value = "white",
+             high = "#000099", low = "grey")
 
 ```
 
 ```{r message=FALSE, fig.width = 5, fig.height=5, warning=FALSE}
-plot_heatmap(ps_from_deseq(ng.bact.BS, "BS"), taxa.label = "Family", na.value = "white",
-             high = "#000099", low = "white")
+plot_heatmap(ps_from_deseq(n.bact.BS, "BS", "Family"), taxa.label = "Family", na.value = "white",
+             high = "#000099", low = "grey")
 ```
 
 
 ### Ternary plots
 
-
+See [here](https://github.com/a-zverev/rhizofield/blob/master/ggtern_diagrams.md)
 
 
 
