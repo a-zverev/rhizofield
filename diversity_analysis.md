@@ -17,6 +17,8 @@ library(dplyr)
 library(ggpubr)
 library(picante)
 library(reshape2)
+library(magrittr)
+library(data.table)
 library(tidyr)
 library(psych)
 library(DESeq2)
@@ -36,6 +38,9 @@ bact.BS <- subset_samples(bact.BS, Spot %in% c('1', '2', '3'))
 
 n.roots.BS <- rarefy_collapse(roots.BS)
 n.bact.BS <- rarefy_collapse(bact.BS)
+
+n.roots.BS@phy_tree <- ape::root(n.roots.BS@phy_tree, outgroup=pick_new_outgroup(n.roots.BS@phy_tree), resolve.root=TRUE)
+n.bact.BS@phy_tree <- ape::root(n.bact.BS@phy_tree, outgroup=pick_new_outgroup(n.bact.BS@phy_tree), resolve.root=TRUE)
 ```
 
 
@@ -48,6 +53,9 @@ bact.PS <- subset_samples(bact.PS, Spot %in% c('1', '2', '3'))
 
 n.roots.PS <- rarefy_collapse(roots.PS)
 n.bact.PS <- rarefy_collapse(bact.PS)
+
+n.roots.PS@phy_tree <- ape::root(n.roots.PS@phy_tree, outgroup=pick_new_outgroup(n.roots.PS@phy_tree), resolve.root=TRUE)
+n.bact.PS@phy_tree <- ape::root(n.bact.PS@phy_tree, outgroup=pick_new_outgroup(n.bact.PS@phy_tree), resolve.root=TRUE)
 ```
 
 # Представленность таксонов
@@ -288,13 +296,13 @@ merge(d1[1] %>% as.data.frame(), d2[1] %>% as.data.frame,
 
 ```
 ##    Cluster Dunn:Bact Dunn:Roots Median_Dist:Bact Median_Dist:Roots
-## 1 Graminae     0.422      0.605            0.049             0.501
-## 2  Melilot     0.422      0.605            0.034             0.206
-## 3    Wheat     0.422      0.605            0.055             0.096
+## 1 Graminae     0.412       0.63            0.053             0.381
+## 2  Melilot     0.412       0.63            0.037             0.283
+## 3    Wheat     0.412       0.63            0.061             0.016
 ##   Min_separation:Bact Min_separation:Roots
-## 1               0.026                0.358
-## 2               0.026                0.358
-## 3               0.041                0.538
+## 1               0.028                0.295
+## 2               0.028                0.304
+## 3               0.045                0.295
 ```
 
 ```r
@@ -305,13 +313,13 @@ merge(d1[2] %>% as.data.frame(), d2[2] %>% as.data.frame,
 
 ```
 ##   Cluster_1 Cluster_2 Clusters_Separation:Bact Clusters_Separation:Roots
-## 1  Graminae   Melilot               0.02619387                 0.3581302
-## 2  Graminae     Wheat               0.04128057                 0.5592192
-## 3   Melilot     Wheat               0.04252493                 0.5375461
+## 1  Graminae   Melilot               0.02826693                 0.3036948
+## 2  Graminae     Wheat               0.04510017                 0.2945624
+## 3   Melilot     Wheat               0.04608170                 0.3077156
 ##   Distance_Between:Bact Distance_Between:Roots
-## 1            0.04567953              0.4635901
-## 2            0.05189913              0.6289813
-## 3            0.05700721              0.6301929
+## 1            0.05008256              0.4658108
+## 2            0.05708553              0.3456730
+## 3            0.06235633              0.4696738
 ```
 
 ### Подзол
@@ -338,13 +346,13 @@ merge(d1[1] %>% as.data.frame(), d2[1] %>% as.data.frame,
 
 ```
 ##    Cluster Dunn:Bact Dunn:Roots Median_Dist:Bact Median_Dist:Roots
-## 1 Bedstraw     0.805      0.709            0.027             0.308
-## 2 Graminae     0.805      0.709            0.025             0.476
-## 3      Rye     0.805      0.709            0.027             0.197
+## 1 Bedstraw     0.814       0.32            0.020             0.219
+## 2 Graminae     0.814       0.32            0.019             0.092
+## 3      Rye     0.814       0.32            0.021             0.012
 ##   Min_separation:Bact Min_separation:Roots
-## 1               0.022                0.390
-## 2               0.022                0.390
-## 3               0.035                0.867
+## 1               0.017                0.188
+## 2               0.017                0.079
+## 3               0.027                0.079
 ```
 
 ```r
@@ -355,13 +363,13 @@ merge(d1[2] %>% as.data.frame(), d2[2] %>% as.data.frame,
 
 ```
 ##   Cluster_1 Cluster_2 Clusters_Separation:Bact Clusters_Separation:Roots
-## 1  Bedstraw  Graminae               0.02241464                 0.3896401
-## 2  Bedstraw       Rye               0.03694616                 0.9305281
-## 3  Graminae       Rye               0.03462622                 0.8671479
+## 1  Bedstraw  Graminae               0.01737153                0.18841349
+## 2  Bedstraw       Rye               0.02841299                0.25096920
+## 3  Graminae       Rye               0.02655707                0.07891098
 ##   Distance_Between:Bact Distance_Between:Roots
-## 1            0.02616957              0.5903996
-## 2            0.04757406              0.9735252
-## 3            0.04204957              0.9443660
+## 1            0.02003923              0.2489771
+## 2            0.03658195              0.3127612
+## 3            0.03236464              0.1369178
 ```
 
 
@@ -420,8 +428,8 @@ data.frame(ps.1 = c('n.roots.BS', 'n.roots.PS'),
 ## # Rowwise: 
 ##   ps.1       ps.2      method   Mnt_stat Mnt_signif
 ##   <fct>      <fct>     <fct>       <dbl>      <dbl>
-## 1 n.roots.BS n.bact.BS wunifrac    0.336      0.07 
-## 2 n.roots.PS n.bact.PS wunifrac    0.829      0.001
+## 1 n.roots.BS n.bact.BS wunifrac    0.224      0.096
+## 2 n.roots.PS n.bact.PS wunifrac    0.31       0.063
 ## 3 n.roots.BS n.bact.BS bray        0.814      0.003
 ## 4 n.roots.PS n.bact.PS bray        0.878      0.001
 ```

@@ -16,6 +16,8 @@ library(dplyr)
 library(ggpubr)
 library(picante)
 library(reshape2)
+library(magrittr)
+library(data.table)
 library(tidyr)
 library(psych)
 library(DESeq2)
@@ -34,6 +36,9 @@ bact.BS <- subset_samples(bact.BS, Spot %in% c('1', '2', '3'))
 
 n.roots.BS <- rarefy_collapse(roots.BS)
 n.bact.BS <- rarefy_collapse(bact.BS)
+
+n.roots.BS@phy_tree <- ape::root(n.roots.BS@phy_tree, outgroup=pick_new_outgroup(n.roots.BS@phy_tree), resolve.root=TRUE)
+n.bact.BS@phy_tree <- ape::root(n.bact.BS@phy_tree, outgroup=pick_new_outgroup(n.bact.BS@phy_tree), resolve.root=TRUE)
 ```
 
 ```{r}
@@ -45,6 +50,9 @@ bact.PS <- subset_samples(bact.PS, Spot %in% c('1', '2', '3'))
 
 n.roots.PS <- rarefy_collapse(roots.PS)
 n.bact.PS <- rarefy_collapse(bact.PS)
+
+n.roots.PS@phy_tree <- ape::root(n.roots.PS@phy_tree, outgroup=pick_new_outgroup(n.roots.PS@phy_tree), resolve.root=TRUE)
+n.bact.PS@phy_tree <- ape::root(n.bact.PS@phy_tree, outgroup=pick_new_outgroup(n.bact.PS@phy_tree), resolve.root=TRUE)
 ```
 
 # Представленность таксонов
