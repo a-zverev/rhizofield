@@ -205,8 +205,8 @@ beta_corr <- function(ps.1, ps.2, method){
   header <- paste0('R: ', round(fit$r, 3), ' (p-value - ', round(fit$p, 3), ')')
   #plotting
   ggplot(data = data, aes(x = x, y = y)) + 
-    #geom_point(aes(color = Color)) +
-    geom_point(aes()) +
+    geom_point(aes(color = Color)) +
+    # geom_point(aes()) +
     geom_smooth(method = 'lm', se = F) + 
     theme_light() +
     theme(plot.title = element_text(color = ifelse(fit$p < 0.05, "darkgreen", "brown2"))) +

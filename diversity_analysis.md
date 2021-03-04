@@ -50,9 +50,9 @@ n.roots.PS <- rarefy_collapse(roots.PS)
 n.bact.PS <- rarefy_collapse(bact.PS)
 ```
 
-## Представленность таксонов
+# Представленность таксонов
 
-### Состав корневых сообществ
+## Состав корневых сообществ
 
 Как задать корректный порог? Или все же отдельные графики?
 
@@ -79,7 +79,7 @@ ggarrange(bargraph(n.roots.BS, "Genus", 0.03),
 
 ![](diversity_analysis_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
 
-### Состав бактериальных сообществ
+## Состав бактериальных сообществ
 
 
 
@@ -98,7 +98,7 @@ bargraph(c, "Phylum", 0.03) + facet_grid(~Soil, scale = 'free_x')
 ![](diversity_analysis_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 
-## Альфа-разнообразие
+# Альфа-разнообразие
 
 **Гипотеза: богатство корневых сообществ определяет богатство сообществ бактерий**
 
@@ -107,7 +107,7 @@ bargraph(c, "Phylum", 0.03) + facet_grid(~Soil, scale = 'free_x')
 Давайте посчитаем корреляцию между этими индексами, рассчитанными для разных почв в парах "корни - бактерии"
 
 
-### Графики корреляции метрик альфа-разнообразия
+## Графики корреляции метрик альфа-разнообразия
 
 
 ```r
@@ -134,7 +134,7 @@ plot_internal_correlation(alpha_div(n.bact.PS, pairwise_distances_from_ps(n.bact
 
 ![](diversity_analysis_files/figure-html/unnamed-chunk-6-4.png)<!-- -->
 
-### 
+## Корреляция корневых и бактериальных метрик разнообразия
 
 
 ```r
@@ -185,11 +185,11 @@ drawer('p.dist')
 ---
 
 
-## Бета-разнообразие
+# Бета-разнообразие
 
 **Гипотеза: богатство корневых сообществ определяет богатство сообществ бактерий и грибов**
 
-### Бета-разнообразие
+## Бета-разнообразие
 
 
 ```r
@@ -210,7 +210,7 @@ beta_plot_drawer("unifrac")
 
 ![](diversity_analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
-### Статистика для кластеров бета-разнообразия
+## Статистика для кластеров бета-разнообразия
 
 Гипотеза: структура кластеров похожа. Для этого используем статистики из пакета кластерного анализа. Использованы следующие метрики:
 
@@ -264,7 +264,7 @@ bootstrapped_wunifrac_cluster_stat <- function(ps, repeats){
 }
 ```
 
-#### Чернозем
+### Чернозем
 
 
 ```r
@@ -314,7 +314,7 @@ merge(d1[2] %>% as.data.frame(), d2[2] %>% as.data.frame,
 ## 3            0.05700721              0.6301929
 ```
 
-#### Подзол
+### Подзол
 
 
 ```r
@@ -364,80 +364,73 @@ merge(d1[2] %>% as.data.frame(), d2[2] %>% as.data.frame,
 ## 3            0.04204957              0.9443660
 ```
 
-<!-- ### Корреляця дистанций бета-разнообразия -->
 
-<!-- Каждая точка на графике - численное выражение дистанция между двумя сообществами (например, Graminae.1 - Rye.2). По оси Х эта дистанция взята для растительных сообществ, по оси Y - для сообществ микроорганизмов. Насколько распределение дистанций в корневых сообществах повторяет его в сообществах микроорганизмов? -->
+ПРОБЛЕМА: мы не можем делать никаких выводов на основании трех точек
 
+## Корреляця дистанций бета-разнообразия
 
-```r
-# beta_drawer <- function(metric){
-#   p1 <- beta_corr(n.roots.BS, n.bact.BS, metric)
-#   p3 <- beta_corr(n.roots.PS, n.bact.PS, metric)
-#   ggarrange(p1, p3, ncol = 2)
-# }
+### Самодельная функция
 
-# beta_drawer('unifrac')
-# beta_drawer('wunifrac')
-# beta_drawer('bray')
-```
-
-
+Каждая точка на графике - численное выражение дистанция между двумя сообществами (например, Graminae.1 - Rye.2). По оси Х эта дистанция взята для растительных сообществ, по оси Y - для сообществ микроорганизмов. Насколько распределение дистанций в корневых сообществах повторяет его в сообществах микроорганизмов?
 
 
 ```r
-# # Strange beta p-distance
-# 
-# all.beta.pd <- read.csv("beta_p-distance.csv", comment.char = "#", sep = "\t")
-# 
-# beta.pd.roots.BS <- all.beta.pd %>% filter(norm == 1, Source == "Roots", Soil == "BS")
-# beta.pd.roots.PS <- all.beta.pd %>% filter(norm == 1, Source == "Roots", Soil == "PS")
-# beta.pd.bact.BS <- all.beta.pd %>% filter(norm == 1, Source == "Bact", Soil == "BS")
-# beta.pd.bact.PS <- all.beta.pd %>% filter(norm == 1, Source == "Bact", Soil == "PS")
-# 
-# convert_longer <- function(table_df){
-#   table_df <- table_df  %>% 
-#     select(-norm, -Source, -Soil)
-#   colnames(table_df) <- c("X", as.character(table_df$X)) 
-#   table_df %>%
-#     pivot_longer(!X, names_to = "Y", values_to = "value")
-# }
-# 
-# beta_p_distance_correlation <- function(root, bact){
-#   a <- convert_longer(root)
-#   b <- convert_longer(bact)
-#   
-#   data <- inner_join(a, b, by = c('X', 'Y'))
-#   x = data$value.x
-#   y = data$value.y
-#   data$Color <- paste(gsub('.{2}$', '', data$X), '-', gsub('.{2}$', '', data$Y))
-#   #correlation
-#   fit <- corr.test(x=x, y=y)
-#   print(data)
-#   print(fit$p)
-#   header <- paste0('R: ', round(fit$r, 3), ' (p-value - ', round(fit$p, 3), ')')
-#   #plotting
-#   ggplot(data = data, aes(x = x, y = y)) + 
-#     geom_point(aes(color = Color)) +
-#     geom_smooth(method = 'lm', se = F) + 
-#     theme_light() +
-#     theme(plot.title = element_text(color = ifelse(fit$p < 0.05, "darkgreen", "brown2"))) +
-#     labs(title=paste(header), 
-#          x = paste("beta_p-dist", '-', deparse(substitute(root))), 
-#          y = paste("beta_p-dist", '-', deparse(substitute(bact))))
-#   
-# }
-# 
-# 
-# 
-# print(beta_p_distance_correlation(beta.pd.roots.BS, beta.pd.bact.BS))
-# print(beta_p_distance_correlation(beta.pd.roots.PS, beta.pd.bact.PS))
+beta_drawer <- function(metric){
+  p1 <- beta_corr(n.roots.BS, n.bact.BS, metric)
+  p3 <- beta_corr(n.roots.PS, n.bact.PS, metric)
+  ggarrange(p1, p3, ncol = 2)
+}
+
+beta_drawer('wunifrac')
 ```
 
+![](diversity_analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+```r
+beta_drawer('bray')
+```
+
+![](diversity_analysis_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
+
+ПРОБЛЕМА: не соблюдено условие гомоскедастичности остатков, мы не можем использовать корреляционный анализ
+
+### Тест Мантеля
 
 
-## DeSEQ анализ
+```r
+mantel_beta_correlation <- function(ps.1, ps.2, method){
+  mtr1 <- phyloseq::distance(get(as.character(ps.1)), method=as.character(method))
+  mtr2 <- phyloseq::distance(get(as.character(ps.2)), method=as.character(method))
+  fit <- mantel(mtr1, mtr2, method="spearman", permutations=999, parallel = getOption("12"))
+  return(round(c(fit$statistic, fit$signif), 3))
+}
 
-### Достоверно изменяющие численность таксоны
+# mantel_beta_correlation('n.roots.BS', 'n.bact.BS', 'wunifrac')
+
+data.frame(ps.1 = c('n.roots.BS', 'n.roots.PS'),
+                 ps.2 = c('n.bact.BS', 'n.bact.PS')) %>%
+  merge(data.frame(method = c('wunifrac', 'bray')), all=T) %>% 
+  rowwise() %>% 
+  mutate(res = list(mantel_beta_correlation(ps.1, ps.2, method))) %>% 
+  mutate(Mnt_stat = res[1], Mnt_signif = res[2]) %>% select(-res)
+```
+
+```
+## # A tibble: 4 x 5
+## # Rowwise: 
+##   ps.1       ps.2      method   Mnt_stat Mnt_signif
+##   <fct>      <fct>     <fct>       <dbl>      <dbl>
+## 1 n.roots.BS n.bact.BS wunifrac    0.336      0.07 
+## 2 n.roots.PS n.bact.PS wunifrac    0.829      0.001
+## 3 n.roots.BS n.bact.BS bray        0.814      0.003
+## 4 n.roots.PS n.bact.PS bray        0.878      0.001
+```
+
+Результат очень похож на наши корреляции
+
+# DeSEQ анализ
+
+## Достоверно изменяющие численность таксоны
 
 
 ```r
@@ -456,7 +449,7 @@ plot_heatmap(ps_from_deseq(n.bact.BS, "BS", "Family"), taxa.label = "Family", na
 ![](diversity_analysis_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 
-### Ternary plots
+## Ternary plots
 
 See [here](https://github.com/a-zverev/rhizofield/blob/master/ggtern_diagrams.md)
 
